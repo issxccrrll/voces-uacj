@@ -1,16 +1,20 @@
-# React + Vite
+# VocesUACJ: Plataforma de Inteligencia Cívica
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Proyecto desarrollado para la gestión y priorización de infraestructura universitaria mediante analítica de datos.
 
-Currently, two official plugins are available:
+## Descripción
+VocesUACJ transforma las necesidades de la comunidad estudiantil en propuestas formales, utilizando algoritmos de priorización para optimizar la toma de decisiones administrativas.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Stack Tecnológico
+- **Frontend:** React + Vite
+- **Backend/Base de Datos:** Supabase (PostgreSQL)
+- **Seguridad:** Autenticación OTP institucional
 
-## React Compiler
+## Ingeniería de Procesos
+Este proyecto aplica el enfoque de **Industria 4.0** mediante:
+- **Poka-Yokes Digitales:** Prevención de errores en la entrada de datos.
+- **Flujo de Trabajo Híbrido (BPMN):** Validación humana estratégica para garantizar la viabilidad legal y reglamentaria de las propuestas.
+- **Análisis de Pareto:** Priorización basada en datos para el presupuesto de mantenimiento.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Autor
+David Isaac Romero Carrillo - Universidad Autónoma de Ciudad Juárez
