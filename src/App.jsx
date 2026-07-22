@@ -6,6 +6,7 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+
 // --- ICONOS INLINE SVG ---
 const IconLightbulb = ({ className = "w-6 h-6" }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -83,6 +84,8 @@ export default function App() {
   const [formCampus, setFormCampus] = useState('IIT');
   const [formCategory, setFormCategory] = useState('Baños');
   const [formError, setFormError] = useState('');
+  //terminos y condiciones
+  const [aceptoTerminos, setAceptoTerminos] = useState(false);
 
   // Propuestas
   const [proposals, setProposals] = useState(() => {
@@ -580,12 +583,13 @@ export default function App() {
         )}
       </main>
 
-      <footer className="bg-slate-900 text-slate-400 py-10 border-t border-slate-800 text-center mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-xs">CIVICTECH UACJ es un proyecto estudiantil académico independiente y libre de fines de lucro.</p>
-          <p className="text-[10px] text-slate-500 mt-2">Desarrollado con compromiso cívico en Ciudad Juárez, Chihuahua. © {new Date().getFullYear()}</p>
-        </div>
-      </footer>
+      <footer style={{ textAlign: 'center', marginTop: '50px', padding: '20px', borderTop: '1px solid #ccc' }}>
+  <p>© 2026 VocesUACJ - Proyecto de Inteligencia Cívica</p>
+  {/* Aquí puedes usar React Router para navegar al componente, o simplemente abrir un modal */}
+  <a href="/privacidad" style={{ color: 'blue', textDecoration: 'underline' }}>
+    Leer Aviso de Privacidad y Términos de Uso
+  </a>
+</footer>
 
       {/* --- MODAL DE CREACIÓN --- */}
       {showCreateModal && (
@@ -627,6 +631,26 @@ export default function App() {
                 <label className="block text-xs font-bold text-slate-700 mb-1 uppercase">👥 ¿A quiénes beneficia tu idea?</label>
                 <input type="text" value={formBeneficiaries} onChange={(e) => setFormBeneficiaries(e.target.value)} placeholder="Ej: A los alumnos del turno nocturno..." className="w-full px-4 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#003B91]" />
               </div>
+              <div style={{ marginBottom: '15px' }}>
+  <input 
+    type="checkbox" 
+    id="terminos" 
+    checked={aceptoTerminos}
+    onChange={(e) => setAceptoTerminos(e.target.checked)}
+  />
+  <label htmlFor="terminos" style={{ marginLeft: '8px', fontSize: '14px' }}>
+    He leído y acepto la política de moderación. Entiendo que usar lenguaje inapropiado o enviar propuestas falsas resultará en el rechazo de la petición.
+  </label>
+</div>
+
+{/* El botón de enviar solo se activa si la casilla está marcada */}
+<button 
+  type="submit" 
+  disabled={!aceptoTerminos}
+  style={{ opacity: aceptoTerminos ? 1 : 0.5 }}
+>
+  Enviar Propuesta
+</button>
               {formError && <div className="bg-rose-50 border border-rose-100 p-3 rounded-xl text-rose-700 text-xs font-semibold flex items-start gap-2"><IconExclamation className="w-5 h-5 shrink-0 text-rose-500" /><span>{formError}</span></div>}
               <div className="pt-3 flex gap-3 justify-end border-t">
                 <button type="button" onClick={() => setShowCreateModal(false)} className="px-5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold hover:bg-slate-50 transition-all text-slate-600 cursor-pointer">Cancelar</button>
