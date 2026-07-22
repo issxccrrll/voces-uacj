@@ -589,12 +589,12 @@ export default function App() {
     © 2026 VocesUACJ - Proyecto de Inteligencia Cívica
   </p>
   {/* Aquí puedes usar React Router (Link) para navegar al componente, o abrir un modal */}
-  <a 
-    href="/AvisoPrivacidad" 
-    className="text-sm text-[#003B91] font-semibold hover:text-blue-800 hover:underline transition-colors duration-200"
-  >
-    Leer Aviso de Privacidad y Términos de Uso
-  </a>
+  <Link 
+  to="/aviso-privacidad" 
+  className="text-sm text-[#003B91] font-semibold hover:text-blue-800 hover:underline transition-colors duration-200"
+>
+  Leer Aviso de Privacidad y Términos de Uso
+</Link>
 </footer>
 
       {/* --- MODAL DE CREACIÓN --- */}
