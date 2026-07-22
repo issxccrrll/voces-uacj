@@ -583,10 +583,15 @@ export default function App() {
         )}
       </main>
 
-      <footer style={{ textAlign: 'center', marginTop: '50px', padding: '20px', borderTop: '1px solid #ccc' }}>
-  <p>© 2026 VocesUACJ - Proyecto de Inteligencia Cívica</p>
-  {/* Aquí puedes usar React Router para navegar al componente, o simplemente abrir un modal */}
-  <a href="/privacidad" style={{ color: 'blue', textDecoration: 'underline' }}>
+      <footer className="mt-16 py-8 border-t border-slate-200 flex flex-col items-center justify-center gap-2">
+  <p className="text-sm text-slate-500 font-medium">
+    © 2026 VocesUACJ - Proyecto de Inteligencia Cívica
+  </p>
+  {/* Aquí puedes usar React Router (Link) para navegar al componente, o abrir un modal */}
+  <a 
+    href="/AvisoPrivacidad" 
+    className="text-sm text-[#003B91] font-semibold hover:text-blue-800 hover:underline transition-colors duration-200"
+  >
     Leer Aviso de Privacidad y Términos de Uso
   </a>
 </footer>
@@ -644,17 +649,11 @@ export default function App() {
 </div>
 
 {/* El botón de enviar solo se activa si la casilla está marcada */}
-<button 
-  type="submit" 
-  disabled={!aceptoTerminos}
-  style={{ opacity: aceptoTerminos ? 1 : 0.5 }}
->
-  Enviar Propuesta
-</button>
+
               {formError && <div className="bg-rose-50 border border-rose-100 p-3 rounded-xl text-rose-700 text-xs font-semibold flex items-start gap-2"><IconExclamation className="w-5 h-5 shrink-0 text-rose-500" /><span>{formError}</span></div>}
               <div className="pt-3 flex gap-3 justify-end border-t">
                 <button type="button" onClick={() => setShowCreateModal(false)} className="px-5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold hover:bg-slate-50 transition-all text-slate-600 cursor-pointer">Cancelar</button>
-                <button type="submit" className="px-6 py-2.5 rounded-xl bg-[#003B91] hover:bg-blue-800 text-white text-xs font-bold shadow-md transition-all cursor-pointer">Publicar Propuesta Formal</button>
+                <button type="submit" disabled={!aceptoTerminos} style={{ opacity: aceptoTerminos ? 1 : 0.5 }} className="px-6 py-2.5 rounded-xl bg-[#003B91] hover:bg-blue-800 text-white text-xs font-bold shadow-md transition-all cursor-pointer">Publicar Propuesta Formal</button>
               </div>
             </form>
           </div>
