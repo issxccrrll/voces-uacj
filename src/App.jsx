@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import AvisoPrivacidad from './AvisoPrivacidad';
 
 // --- CONEXIÓN A LA BASE DE DATOS ---
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -88,17 +90,22 @@ export default function App() {
   //terminos y condiciones
   const [aceptoTerminos, setAceptoTerminos] = useState(false);
 
-  // Propuestas
-  const [proposals, setProposals] = useState(() => {
-    const saved = localStorage.getItem('uacj_civic_proposals');
-    if (saved) return JSON.parse(saved);
-    return []; // Reemplazar con datos iniciales si lo deseas
-  });
+  // --- INTEGRACIÓN ARQUITECTURA CQRS ---
+  // Reemplazamos el caché local por un estado puro alimentado por Supabase
+  const [proposals, setProposals] = useState([]);
 
-  // Persistencia local temporal (Caché)
+  // Fetch inicial del muro optimizado (Vista Materializada)
   useEffect(() => {
-    localStorage.setItem('uacj_civic_proposals', JSON.stringify(proposals));
-  }, [proposals]);
+    const fetchMuro = async () => {
+      const { data, error } = await supabase
+        .from('muro_optimizado')
+        .select('*');
+        
+      if (data) setProposals(data);
+      if (error) console.error("Error cargando el muro optimizado:", error);
+    };
+    fetchMuro();
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -175,44 +182,66 @@ export default function App() {
     triggerNotification('Sesión cerrada correctamente.', 'info');
   }, [triggerNotification]);
 
-  // --- LÓGICA DE VOTACIÓN (Concurrencia optimizada) ---
-  const handleVote = useCallback((proposalId) => {
+  // --- LÓGICA DE VOTACIÓN (Actualización Optimista + Supabase Triggers) ---
+  const handleVote = useCallback(async (proposalId) => {
     if (!user) {
       triggerNotification('Debes registrar tu matrícula UACJ para poder votar.', 'error');
       return;
     }
 
+    // 1. ACTUALIZACIÓN OPTIMISTA (La Ilusión)
     setProposals(prev => prev.map(prop => {
       if (prop.id === proposalId) {
-        const userHasVoted = prop.voters?.includes(user.email);
-        let newVoters = [...(prop.voters || [])];
-        let newVotes = prop.votes;
-
-        if (userHasVoted) {
-          newVoters = newVoters.filter(email => email !== user.email);
-          newVotes -= 1;
-          triggerNotification('Retiraste tu apoyo a esta propuesta.', 'info');
-        } else {
-          newVoters.push(user.email);
-          newVotes += 1;
-          triggerNotification('¡Apoyo registrado con éxito!', 'success');
-        }
-
         return {
           ...prop,
-          votes: newVotes,
-          voters: newVoters,
-          status: newVotes >= prop.target ? 'Enviado a Revisión' : 'Buscando Firmas'
+          total_votos: (prop.total_votos || 0) + 1,
+          voted_in_session: true // Marcador local para feedback visual inmediato
         };
       }
       return prop;
     }));
+
+    // 2. LA VERDAD (Backend Supabase - Dispara el Trigger)
+    const { error } = await supabase
+      .from('votes')
+      .insert([
+        { 
+          proposal_id: proposalId, 
+          user_id: user.id // Usamos el ID real obtenido del OTP
+        }
+      ]);
+
+    // 3. REVERSIÓN DE SEGURIDAD
+    if (error) {
+      console.error("Fallo transaccional:", error);
+      
+      // Revertimos el contador visual
+      setProposals(prev => prev.map(prop => {
+        if (prop.id === proposalId) {
+          return {
+            ...prop,
+            total_votos: (prop.total_votos || 1) - 1,
+            voted_in_session: false
+          };
+        }
+        return prop;
+      }));
+      
+      // Código 23505 = Unique Violation en PostgreSQL (Ya votó)
+      if (error.code === '23505') {
+        triggerNotification('Ya has registrado tu apoyo para esta propuesta anteriormente.', 'info');
+      } else {
+        triggerNotification('Hubo un error de conexión al registrar tu voto.', 'error');
+      }
+    } else {
+      triggerNotification('¡Apoyo registrado con éxito!', 'success');
+    }
   }, [user, triggerNotification]);
 
   // --- MOTOR CRUD: ELIMINAR PROPUESTA (Evaluación Matemática Δt) ---
-  const handleDeleteProposal = useCallback(async (id, createdAt) => {
+  const handleDeleteProposal = useCallback(async (id, created_at) => {
     // Cálculo matemático: ¿Han pasado menos de 24 horas?
-    const tiempoCreacion = new Date(createdAt).getTime();
+    const tiempoCreacion = new Date(created_at).getTime();
     const tiempoActual = Date.now();
     const diferenciaMs = tiempoActual - tiempoCreacion;
     const limiteMs = 24 * 60 * 60 * 1000; // 24 horas en milisegundos
@@ -263,15 +292,16 @@ export default function App() {
         category: formCategory,
         status: 'Buscando Firmas',
         target: 500,
-        // IMPORTANTE: Asegúrate de tener la columna 'author' creada en Supabase
         author: user ? user.email : 'anonimo@uacj.mx',
-        createdAt: new Date().toISOString() // Agregamos Timestamp para el cálculo matemático
+        // created_at lo genera Supabase automáticamente por defecto, 
+        // pero lo puedes pasar si es estrictamente necesario en tu tabla
       };
 
       const { data, error } = await supabase.from('proposals').insert([nuevaPropuestaDB]).select();
       if (error) throw error;
 
-      setProposals(prev => [{ ...data[0], voters: [], votes: 0 }, ...prev]);
+      // Actualizamos el muro local inmediatamente para UX fluida
+      setProposals(prev => [{ ...data[0], total_votos: 0, voted_in_session: false }, ...prev]);
       setShowCreateModal(false);
       triggerNotification('¡Propuesta inyectada en la base de datos oficial!', 'success');
 
@@ -293,11 +323,12 @@ export default function App() {
 
   const metrics = useMemo(() => {
     const total = proposals.length;
-    const totalVotes = proposals.reduce((acc, p) => acc + (p.votes || 0), 0);
+    // Adaptado a la columna total_votos de la base de datos
+    const totalVotes = proposals.reduce((acc, p) => acc + (p.total_votos || 0), 0);
     const resolved = proposals.filter(p => p.status === 'Logrado').length;
     const inReview = proposals.filter(p => p.status === 'Enviado a Revisión').length;
     const categoryCounts = {};
-    proposals.forEach(p => { categoryCounts[p.category] = (categoryCounts[p.category] || 0) + (p.votes || 0); });
+    proposals.forEach(p => { categoryCounts[p.category] = (categoryCounts[p.category] || 0) + (p.total_votos || 0); });
     return { total, totalVotes, resolved, inReview, categoryCounts };
   }, [proposals]);
 
@@ -509,8 +540,10 @@ export default function App() {
               ) : (
                 <div className="space-y-4">
                   {filteredProposals.map((prop) => {
-                    const hasVoted = user ? (prop.voters?.includes(user.email) ?? false) : false;
-                    const progressPercentage = Math.min(100, Math.round(((prop.votes || 0) / prop.target) * 100));
+                    // Verificamos de forma optimista si el usuario ha votado en esta sesión para bloquear el botón visualmente
+                    const hasVoted = prop.voted_in_session || false;
+                    const target = prop.target || 500;
+                    const progressPercentage = Math.min(100, Math.round(((prop.total_votos || 0) / target) * 100));
 
                     return (
                       <div key={prop.id} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-all text-left relative overflow-hidden">
@@ -526,7 +559,7 @@ export default function App() {
                             {/* BOTÓN DE ELIMINAR (Solo dueño) */}
                             {user && user.email === prop.author && (
                               <button 
-                                onClick={() => handleDeleteProposal(prop.id, prop.createdAt)}
+                                onClick={() => handleDeleteProposal(prop.id, prop.created_at)}
                                 className="text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 p-1.5 rounded-lg transition-all cursor-pointer"
                                 title="Eliminar propuesta (Límite 24h)"
                               >
@@ -547,20 +580,24 @@ export default function App() {
                         <div className="flex items-center justify-between gap-4 mb-4">
                           <div className="flex-1">
                             <div className="flex justify-between text-xs font-semibold text-slate-600 mb-1">
-                              <span>Progreso para envío de propuesta</span><span className="font-bold text-[#003B91]">{prop.votes} / {prop.target} apoyos</span>
+                              <span>Progreso para envío de propuesta</span><span className="font-bold text-[#003B91]">{prop.total_votos} / {target} apoyos</span>
                             </div>
                             <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
                               <div className={`h-full transition-all duration-500 ${prop.status === 'Enviado a Revisión' ? 'bg-amber-400' : 'bg-[#003B91]'}`} style={{ width: `${progressPercentage}%` }} />
                             </div>
                           </div>
-                          <button onClick={() => handleVote(prop.id)} className={`px-5 py-3 rounded-xl font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-sm ${hasVoted ? 'bg-[#FFD100] text-[#003B91] ring-2 ring-[#FFD100]/50 font-black' : 'bg-[#003B91] hover:bg-blue-800 text-white'}`}>
+                          <button 
+                            onClick={() => handleVote(prop.id)} 
+                            disabled={hasVoted}
+                            className={`px-5 py-3 rounded-xl font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-sm ${hasVoted ? 'bg-[#FFD100] text-[#003B91] ring-2 ring-[#FFD100]/50 font-black cursor-not-allowed' : 'bg-[#003B91] hover:bg-blue-800 text-white'}`}
+                          >
                             <span>👍</span>{hasVoted ? 'Apoyado' : 'Apoyar'}
                           </button>
                         </div>
 
                         <div className="text-[10px] text-slate-400 flex items-center justify-between border-t pt-3">
                           <span>Propuesto por: <strong className="text-slate-500">Estudiante_{(prop.author || 'anonimo@uacj.mx').split('@')[0].toUpperCase()}</strong></span>
-                          <span>Publicado el: {new Date(prop.createdAt || Date.now()).toLocaleDateString()}</span>
+                          <span>Publicado el: {new Date(prop.created_at || Date.now()).toLocaleDateString()}</span>
                         </div>
                       </div>
                     );
