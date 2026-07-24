@@ -572,9 +572,18 @@ export default function App() {
                         <h4 className="text-base font-extrabold text-slate-900 mb-4">{prop.title}</h4>
 
                         <div className="space-y-3 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100 text-xs text-slate-600">
-                          <div><span className="font-bold text-[#003B91] block mb-1">🚨 Situación o Problema:</span><p className="leading-relaxed">{prop.problem}</p></div>
-                          <div className="pt-2 border-t border-slate-200"><span className="font-bold text-emerald-600 block mb-1">💡 Propuesta de Solución:</span><p className="leading-relaxed">{prop.solution}</p></div>
-                          <div className="pt-2 border-t border-slate-200"><span className="font-bold text-amber-600 block mb-1">👥 Beneficiarios directos:</span><p className="leading-relaxed">{prop.beneficiaries}</p></div>
+                          <div className="pl-4 sm:pl-5 border-l-4 border-rose-500">
+                              <span className="font-extrabold text-rose-700 text-xs uppercase tracking-wider block mb-1">Situación o Problema</span>
+                              <p className="text-neutral-800 text-sm leading-relaxed">{prop.problem}</p>
+                            </div>
+                            <div className="pl-4 sm:pl-5 border-l-4 border-[#F5C500]">
+                              <span className="font-extrabold text-amber-700 text-xs uppercase tracking-wider block mb-1">Propuesta de Solución</span>
+                              <p className="text-neutral-800 text-sm leading-relaxed">{prop.solution}</p>
+                            </div>
+                            <div className="pl-4 sm:pl-5 border-l-4 border-emerald-500">
+                              <span className="font-extrabold text-emerald-700 text-xs uppercase tracking-wider block mb-1">Beneficiarios Directos</span>
+                              <p className="text-neutral-800 text-sm leading-relaxed">{prop.beneficiaries}</p>
+                            </div>
                         </div>
 
                         <div className="flex items-center justify-between gap-4 mb-4">
